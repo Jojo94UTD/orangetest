@@ -19,3 +19,6 @@ class Article extends Model
         'published_at',
     ];
 }
+
+
+
