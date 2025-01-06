@@ -73,45 +73,68 @@ if ($response->successful()) {
     
 }
 
-public function listArticles()
+public function listArticles(Request $request)
 {
-    // 1. Récupérer les articles de la base de données et les convertir en collection
-    $dbArticles = collect(Article::all()); // Assurez-vous que c'est une collection Laravel
+    // Récupérer les filtres de la requête
+    $category = $request->query('category');
+    $journal = $request->query('journal');
+    $date = $request->query('date');
+
+    // 1. Récupérer les articles de la base de données
+    $dbArticles = Article::query();
+
+    if ($category) {
+        $dbArticles->where('category', $category);
+    }
+    if ($journal) {
+        $dbArticles->where('journal', $journal);
+    }
+    if ($date) {
+        $dbArticles->whereDate('published_at', $date);
+    }
+
+    $dbArticles = collect($dbArticles->get());
 
     // 2. Récupérer les articles de l'API Le Monde
     $leMondeResponse = Http::get('https://api-catch-the-dev.unit41.fr/lemonde', [
-        'date' => now()->format('Y-m-d'), // Ajoutez d'autres paramètres si nécessaires
+        'date' => $date ?: now()->format('Y-m-d'),
     ]);
 
     $leMondeArticles = $leMondeResponse->successful()
-        ? collect($leMondeResponse->json('data')) // Convertir en collection Laravel
-        : collect([]); // Si l'API échoue, retourner une collection vide
+        ? collect($leMondeResponse->json('data'))->filter(function ($article) use ($category, $journal, $date) {
+            return (!$category || (isset($article['category']) && $article['category'] == $category)) &&
+                   (!$journal || $journal == 'LeMonde') && // Vérifie si le journal est "LeMonde"
+                   (!$date || (isset($article['published_at']) && $article['published_at'] == $date));
+        })
+        : collect([]);
 
     // 3. Récupérer les articles de l'API L'Équipe
     $lequipeResponse = Http::get('https://api-catch-the-dev.unit41.fr/lequipe', [
-        'token' => 'lequipe', // Ajoutez le token requis
-        'date' => now()->format('Y-m-d'), // Ajoutez d'autres paramètres si nécessaires
+        'token' => 'lequipe',
+        'date' => $date ?: now()->format('Y-m-d'),
     ]);
 
     $lequipeArticles = $lequipeResponse->successful()
-        ? collect($lequipeResponse->json('data')) // Convertir en collection Laravel
-        : collect([]); // Si l'API échoue, retourner une collection vide
+        ? collect($lequipeResponse->json('data'))->filter(function ($article) use ($category, $journal, $date) {
+            return (!$category || (isset($article['category']) && $article['category'] == $category)) &&
+                   (!$journal || $journal == 'LEquipe') && // Vérifie si le journal est "LEquipe"
+                   (!$date || (isset($article['published_at']) && $article['published_at'] == $date));
+        })
+        : collect([]);
 
-    // 4. Fusionner les articles de la base de données et ceux des APIs
+    // 4. Fusionner et trier les articles
     $allArticles = $dbArticles->merge($leMondeArticles)->merge($lequipeArticles);
 
-    // 5. Trier les articles par date de publication
     $sortedArticles = $allArticles->sortByDesc(function ($article) {
-        return $article['published_at'] ?? null; // Trier par 'published_at'
+        return $article['published_at'] ?? null;
     });
 
-    // 6. Retourner la vue avec les articles triés
-    return view('articles.list', ['articles' => $sortedArticles]);
+    // 5. Retourner la vue avec les articles filtrés
+    return view('articles.list', [
+        'articles' => $sortedArticles,
+        'filters' => compact('category', 'journal', 'date'),
+    ]);
 }
-
-
-
-
 
 
 }
