@@ -58,7 +58,8 @@
         <div class="box">
             <h1>JOJO MAGAZINES</h1>
             <button onclick="location.href='/articles'" class="btn">Naviguez ici</button>
-            <button onclick="location.href='/login'" class="btn">Se connecter / S'inscrire</button>
+            <button onclick="location.href='/login'" class="btn">Se connecter</button>
+            <button onclick="location.href='/register'" class="btn">S'inscrire</button>
         </div>
     </div>
 </body>
