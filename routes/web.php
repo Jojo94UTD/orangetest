@@ -9,4 +9,8 @@ Route::get('/', function () {
 
 Route::get('/articles', [ArticleController::class, 'showArticles']);
 
-Route::get('/articles/lemonde', [ArticleController::class, 'fetchLeMondeArticles']);
+Route::get('/articles/lemonde', [ArticleController::class, 'fetchAllLeMondeArticles']);
+
+Route::get('/articles/lequipe', [ArticleController::class, 'fetchAllLEquipeArticles']);
+
+Route::get('/articles/all', [ArticleController::class, 'listArticles']);
